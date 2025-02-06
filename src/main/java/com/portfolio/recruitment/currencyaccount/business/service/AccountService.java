@@ -13,6 +13,7 @@ import com.portfolio.recruitment.currencyaccount.connectors.db.repository.Accoun
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,14 +22,18 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
+    private final AccountValidationService accountValidationService;
 
     public AccountService(AccountRepository accountRepository,
-                          AccountMapper accountMapper) {
+                          AccountMapper accountMapper, AccountValidationService accountValidationService) {
         this.accountRepository = accountRepository;
         this.accountMapper = accountMapper;
+        this.accountValidationService = accountValidationService;
     }
 
     public AccountResponse createAccount(AccountCreationRequest accountCreationRequest) {
+        accountValidationService.validateAvailableCurrency(accountCreationRequest.currencyCode().getCurrencyCode());
+
         Account account = new Account(
                 null,
                 accountCreationRequest.firstName(),
@@ -57,12 +62,12 @@ public class AccountService {
                 .map(accountMapper::toAccount)
                 .orElseThrow(() -> new AccountNotFound("Account with ID " + accountCurrencyUpdate.id() + " not found."));
 
-        if (isCurrencyExists(accountCurrencyUpdate, account)) {
-            throw new IllegalArgumentException("Currency " + accountCurrencyUpdate.currencyCode() + " already exists in the account.");
-        }
+        accountValidationService.validateAvailableCurrency(accountCurrencyUpdate.currencyCode().getCurrencyCode());
+        accountValidationService.validateCurrencyExists(accountCurrencyUpdate, account);
 
         List<AccountBalance> updatedBalances = new ArrayList<>(account.balances());
-        updatedBalances.add(new AccountBalance(accountCurrencyUpdate.currencyCode(), accountCurrencyUpdate.value()));
+        updatedBalances.add(new AccountBalance(accountCurrencyUpdate.currencyCode(),
+                accountCurrencyUpdate.value().setScale(2, RoundingMode.HALF_UP)));
 
         Account updatedAccount = new Account(
                 account.id(),
@@ -79,11 +84,6 @@ public class AccountService {
                 accountAfterUpdate.lastName(),
                 accountAfterUpdate.balances()
         );
-    }
-
-    private static boolean isCurrencyExists(AccountCurrencyUpdate accountCurrencyUpdate, Account account) {
-        return account.balances().stream()
-                .anyMatch(balance -> balance.currencyCode().equals(accountCurrencyUpdate.currencyCode()));
     }
 
 }

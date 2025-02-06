@@ -1,5 +1,7 @@
 package com.portfolio.recruitment.currencyaccount.business.service;
 
+import com.portfolio.recruitment.currencyaccount.api.dto.AccountCurrencyUpdate;
+import com.portfolio.recruitment.currencyaccount.business.service.model.Account;
 import com.portfolio.recruitment.currencyaccount.business.service.model.CurrencyNotSupported;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +32,13 @@ public class AccountValidationService {
         if (!AVAILABLE_CURRENCY.contains(targetCurrency.getCurrencyCode())) {
             throw new CurrencyNotSupported("Provided currency is not supported: " + targetCurrency.getCurrencyCode());
         }
+    }
+
+    protected void validateCurrencyExists(AccountCurrencyUpdate accountCurrencyUpdate, Account account) {
+         if(account.balances().stream().anyMatch(
+                 balance -> balance.currencyCode().equals(accountCurrencyUpdate.currencyCode()))) {
+            throw new IllegalArgumentException("Currency " + accountCurrencyUpdate.currencyCode() + " already exists in the account.");
+         }
     }
 
 }

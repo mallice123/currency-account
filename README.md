@@ -36,15 +36,7 @@ mvn test
 
 Integration tests covers following scenarios:
 
-*   1. Creating an account by calling /api/account using a payload and verifying the response to confirm it returns an ID
-*   2. With the returned ID, can we search and retrieve the account information of the client we just created? (This confirms that the returned ID is usable further in the process)
-*   3. Throwing an exception when no initial balance is provided while creating an account
-*   4. Throwing an exception when no first or last name is provided while creating an account
-
-*   1. Exchanging currency from PLN to USD (to do this, the account must exist. Remember that the account's starting balance only concerns PLN)
-*   2. Exchanging currency from USD to PLN (to do this, the user must create an account first and exchange PLN to USD, as there are no USD funds available otherwise)
-*   After performing exchange steps 1 and 2, verify that the account balance has been updated accordingly
-*   3. Check what happens when a request includes a currency that is not supported and throw an exception in such cases
+//TBA
 
 ## **Application Structure**
 ### Key Components:
@@ -73,6 +65,8 @@ Integration tests covers following scenarios:
    "currencyCode": "PLN",
    "initialBalance": 1000.00
    }
+
+To test the application you can use one of the following currency codes: USD, EUR, GBP, JPY, AUD, CAD, CHF, CNY, SEK, NZD (there is more it's just an example)
 
 3. **Get Account Details**: Send a `GET` request to `http://localhost:8080/api/account/{id}`:
 {
