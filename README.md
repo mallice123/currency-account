@@ -1,6 +1,6 @@
 ## **Overview**
 
-The `currency-account` application is a currency account management system designed for managing user accounts with balances in various currencies. It supports operations like creating user accounts and performing currency exchanges between PLN and USD.
+The `currency-account` application is a currency account management system designed for managing user accounts with balances in various currencies for polish citizens. It supports operations like creating user accounts, adding new balance type, performing currency exchanges between between PLN and USD, EUR, GBP
 The application is built using **Java** with **Spring Boot** **Hibernate** frameworks, managed with **Docker** and **Docker Compose** for deployment, and uses **PostgreSQL** as the underlying database. Testing is integrated using **JUnit**, **Testcontainers**, and **WireMock** for mocking APIs.
 
 ## **Requirements**
@@ -12,7 +12,7 @@ To run this application, ensure you have the following installed on your system:
 4. **Docker Compose**: Version 2.1 or higher
 
 ## **How to run**
-git clone https://github.com/mallice123/currency-account-service
+git clone https://github.com/mallice123/currency-account
 
 1. **Run the Application via Makefile from project root**
    make start
@@ -50,7 +50,8 @@ Integration tests covers following scenarios:
 ### Key Components:
 1. **API Endpoints**:
    - `AccountController`: For handling account creation and account queries
-   - `ExchangeController`: For managing currency exchanges (PLN ↔ USD) with exchange rates fetched from `NBP API`
+   - `ExchangeController`: For managing currency exchanges with exchange rates fetched from `NBP API`
+   - `BalanceController`: For managing existing account by adding new balance type for available products (EUR, USD, GBP)
 
 2. **External Integration**:
    - `CurrencyExchangeClient`: Connects to [NBP API]() to fetch currency exchange rates
@@ -69,30 +70,38 @@ Integration tests covers following scenarios:
    {
    "firstName": "John",
    "lastName": "Doe",
+   "currencyCode": "PLN",
    "initialBalance": 1000.00
    }
 
-2. **Get Account Details**: Send a `GET` request to `http://localhost:8080/api/account/{id}`:
+3. **Get Account Details**: Send a `GET` request to `http://localhost:8080/api/account/{id}`:
 {
    "id": 1,
    "firstName": "John",
    "lastName": "Doe",
-   "balancePLN": 1000.00,
-   "balanceUSD": 0.00
+   "CurrentBalance": [
+      {
+        "currencyCode": "PLN",
+        "value": 1000.00
 }
 
-3. **Currency Exchange**: Example: PLN to USD Send a `POST` request to `http://localhost:8081/api/exchange`:
-{
-     "accountId": 1,
-     "amount": 100.00,
-     "currency": "PLN"
- }
+4. **Currency Exchange**: Send the amount of money you want to get by providing initial and target currency. Example: Send a `POST` request to `http://localhost:8081/api/exchange`:
 
 {
-   "accountId": 1,
-   "amount": 100.00,
-   "currency": "USD"
- }
+  "id": 1,
+  "amount": 500,
+  "initialCurrency": "USD",
+  "targetCurrency": "PLN"
+}
+
+
+5. **Adding new balance type to existing account ** http://localhost:8080/api/balance
+
+{
+  "id": 1,
+  "currencyCode": "USD",
+  "value": 500.12
+}
 
 
 ### Running Tests ###
