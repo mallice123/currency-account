@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.Currency;
 
 public record AccountBalance(
-        Currency currencyCode,
+        String currencyCode,
         BigDecimal value
 )
 {

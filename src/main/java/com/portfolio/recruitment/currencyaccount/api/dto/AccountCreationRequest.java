@@ -5,7 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
-import java.util.Currency;
 
 public record AccountCreationRequest(
         @NotNull(message = "First name cannot be null.")
@@ -17,7 +16,7 @@ public record AccountCreationRequest(
         String lastName,
 
         @NotNull(message = "Currency code cannot be null.")
-        Currency currencyCode,
+        String currencyCode,
 
         @NotNull(message = "Initial value cannot be null.")
         @DecimalMin(value = "0.00", message = "Initial value can't be a negative value.")

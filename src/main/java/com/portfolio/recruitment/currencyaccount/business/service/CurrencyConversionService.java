@@ -43,23 +43,20 @@ public class CurrencyConversionService {
     }
 
     private ConversionResponse performExchange(ExchangeRequest exchangeRequest, Account account) {
-        String fromCurrency = exchangeRequest.initialCurrency().getCurrencyCode();
-        String toCurrency = exchangeRequest.targetCurrency().getCurrencyCode();
+        String fromCurrency = exchangeRequest.initialCurrency();
+        String toCurrency = exchangeRequest.targetCurrency();
         BigDecimal amountToConvert = exchangeRequest.amount();
 
         BigDecimal currentFromBalance = accountBalanceService.findBalanceByCurrencyCode(account, fromCurrency);
 
-        accountValidationService.validateSufficientFunds(currentFromBalance, exchangeRequest.initialCurrency().getCurrencyCode(), amountToConvert);
+        accountValidationService.validateSufficientFunds(currentFromBalance, exchangeRequest.initialCurrency(), amountToConvert);
 
         BigDecimal convertedAmount = currencyConversionManager.convert(amountToConvert, fromCurrency, toCurrency, currencyExchangeClient);
 
-        AccountBalanceService.UpdatedBalances updatedBalances = accountBalanceService.exchangeBalances(
-                account, amountToConvert, convertedAmount, fromCurrency, toCurrency
-        );
-
         return new ConversionResponse(
-                new ConversionResponse.OriginalCurrency(updatedBalances.updatedFromBalance(), exchangeRequest.initialCurrency()),
-                new ConversionResponse.ConvertedCurrency(updatedBalances.updatedToBalance(), exchangeRequest.targetCurrency())
+                accountBalanceService.exchangeBalances(
+                        account, amountToConvert, convertedAmount, fromCurrency, toCurrency
+                )
         );
     }
 

@@ -34,7 +34,7 @@ public class AccountMapper {
 
     private AccountBalance toAccountBalance(BalanceEntity balanceEntity) {
         return new AccountBalance(
-                Currency.getInstance(balanceEntity.getCurrencyCode()),
+                balanceEntity.getCurrencyCode(),
                 balanceEntity.getValue()
         );
     }
@@ -42,7 +42,7 @@ public class AccountMapper {
     private BalanceEntity toBalanceEntity(AccountBalance balance, Long accountId) {
         BalanceEntity balanceEntity = new BalanceEntity();
         balanceEntity.setAccountId(accountId);
-        balanceEntity.setCurrencyCode(balance.currencyCode().getCurrencyCode());
+        balanceEntity.setCurrencyCode(balance.currencyCode());
         balanceEntity.setValue(balance.value());
 
         return balanceEntity;

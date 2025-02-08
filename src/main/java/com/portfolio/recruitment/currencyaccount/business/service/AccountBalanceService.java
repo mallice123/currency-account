@@ -1,14 +1,17 @@
 package com.portfolio.recruitment.currencyaccount.business.service;
 
+import com.portfolio.recruitment.currencyaccount.api.dto.AccountCurrencyUpdate;
 import com.portfolio.recruitment.currencyaccount.business.service.model.AccountBalance;
 import com.portfolio.recruitment.currencyaccount.business.service.mapper.AccountMapper;
 import com.portfolio.recruitment.currencyaccount.business.service.model.Account;
+import com.portfolio.recruitment.currencyaccount.business.service.model.AccountNotFound;
 import com.portfolio.recruitment.currencyaccount.connectors.db.repository.AccountRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Currency;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -34,13 +37,41 @@ public class AccountBalanceService {
 
     protected BigDecimal findBalanceByCurrencyCode(Account account, String currencyCode) {
         return account.balances().stream()
-                .filter(balance -> balance.currencyCode().getCurrencyCode().equals(currencyCode))
+                .filter(balance -> balance.currencyCode().equalsIgnoreCase(currencyCode))
                 .map(AccountBalance::value)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Currency " + currencyCode + " not found in account balances."));
     }
 
-    protected UpdatedBalances exchangeBalances(Account account, BigDecimal amountToConvert, BigDecimal convertedAmount,
+    @Transactional
+    public void addNewBalanceType(AccountCurrencyUpdate accountCurrencyUpdate) {
+        Account account = accountRepository.findByIdForUpdate(accountCurrencyUpdate.id())
+                .map(accountMapper::toAccount)
+                .orElseThrow(() -> new AccountNotFound("Account with ID " + accountCurrencyUpdate.id() + " not found."));
+
+        accountValidationService.validateAvailableCurrency(accountCurrencyUpdate.currencyCode());
+
+        if(accountValidationService.validateCurrencyExists(accountCurrencyUpdate, account)) {
+            return;
+        }
+
+        List<AccountBalance> updatedBalances = new ArrayList<>(account.balances());
+        updatedBalances.add(new AccountBalance(accountCurrencyUpdate.currencyCode(),
+                accountCurrencyUpdate.value().setScale(2, RoundingMode.HALF_UP)));
+
+        Account updatedAccount = new Account(
+                account.id(),
+                account.firstName(),
+                account.lastName(),
+                updatedBalances
+        );
+
+        accountMapper.toAccount(
+                accountRepository.save(accountMapper.toAccountEntity(updatedAccount)));
+
+    }
+
+    protected List<AccountBalance> exchangeBalances(Account account, BigDecimal amountToConvert, BigDecimal convertedAmount,
                                             String fromCurrency, String toCurrency) {
 
         BigDecimal currentFromBalance = findBalanceByCurrencyCode(account, fromCurrency);
@@ -51,26 +82,25 @@ public class AccountBalanceService {
         BigDecimal updatedFromBalance = calculateNewBalance(currentFromBalance, amountToConvert, false);
         BigDecimal updatedToBalance = calculateNewBalance(currentToBalance, convertedAmount, true);
 
-        updateAccountBalances(account, fromCurrency, updatedFromBalance, toCurrency, updatedToBalance);
-
-        return new UpdatedBalances(updatedFromBalance, updatedToBalance);
+      return updateAccountBalances(account, fromCurrency, updatedFromBalance, toCurrency, updatedToBalance);
     }
 
-    private void updateAccountBalances(Account account, String fromCurrency, BigDecimal updatedFromBalance,
+    private List<AccountBalance> updateAccountBalances(Account account, String fromCurrency, BigDecimal updatedFromBalance,
                                        String toCurrency, BigDecimal updatedToBalance) {
         List<AccountBalance> updatedAccountBalances = account.balances().stream()
                 .map(balance -> {
-                    if (balance.currencyCode().getCurrencyCode().equals(fromCurrency)) {
-                        return new AccountBalance(Currency.getInstance(fromCurrency), updatedFromBalance);
+                    if (balance.currencyCode().equalsIgnoreCase(fromCurrency)) {
+                        return new AccountBalance(fromCurrency, updatedFromBalance);
                     }
-                    if (balance.currencyCode().getCurrencyCode().equals(toCurrency)) {
-                        return new AccountBalance(Currency.getInstance(toCurrency), updatedToBalance);
+                    if (balance.currencyCode().equalsIgnoreCase(toCurrency)) {
+                        return new AccountBalance(toCurrency, updatedToBalance);
                     }
                     return balance;
                 })
                 .toList();
-
         setAccountBalances(account, updatedAccountBalances);
+
+        return updatedAccountBalances;
     }
 
     private void setAccountBalances(Account account, List<AccountBalance> updatedBalances) {
@@ -81,13 +111,6 @@ public class AccountBalanceService {
                 updatedBalances
         );
         accountRepository.save(accountMapper.toAccountEntity(updatedAccount));
-    }
-
-    protected record UpdatedBalances(
-            BigDecimal updatedFromBalance,
-            BigDecimal updatedToBalance
-    )
-    {
     }
 
 }
