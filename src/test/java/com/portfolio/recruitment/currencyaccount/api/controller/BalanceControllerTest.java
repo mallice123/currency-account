@@ -8,6 +8,7 @@ import com.portfolio.recruitment.currencyaccount.api.dto.AccountCurrencyUpdateRe
 import com.portfolio.recruitment.currencyaccount.api.dto.ErrorResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -36,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
+@Tag("integrationTest")
 class BalanceControllerTest {
 
     @Autowired
@@ -152,6 +154,7 @@ class BalanceControllerTest {
                         .content(objectMapper.writeValueAsString(accountCurrencyUpdateRequest)))
                 .andReturn();
 
+        // Then: Expect status Bad Request and an errorResponse
         ErrorResponse errorResponse = getErrorResponse(updateNewCurrencyResult);
         assert errorResponse.status() == 400;
         assert errorResponse.errorCode().equals("Provided currency is not supported: KSH");

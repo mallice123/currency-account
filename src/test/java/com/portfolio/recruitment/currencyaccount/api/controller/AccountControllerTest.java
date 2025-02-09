@@ -7,6 +7,7 @@ import com.portfolio.recruitment.currencyaccount.api.dto.AccountCreationRequest;
 import com.portfolio.recruitment.currencyaccount.api.dto.ErrorResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -22,6 +23,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 
+import static com.portfolio.recruitment.currencyaccount.business.service.util.CurrencyConstants.CURRENCY_CODE_PLN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -30,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
+@Tag("integrationTest")
 class AccountControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -72,7 +75,7 @@ class AccountControllerTest {
         AccountCreationRequest createAccountRequest = new AccountCreationRequest(
                 "Jakub",
                 "Skawiński",
-                "PLN",
+                CURRENCY_CODE_PLN,
                 new BigDecimal("1000.00")
         );
         // When: Perform a POST request to create an account
@@ -94,7 +97,7 @@ class AccountControllerTest {
     public void testGetAccountByObtainedId_Success() throws Exception {
         // Given: Create an account and obtain its ID
         AccountCreationRequest createAccountRequest = new AccountCreationRequest(
-                "Koszałek", "Opałek","PLN",  new BigDecimal("500.00"));
+                "Koszałek", "Opałek",CURRENCY_CODE_PLN,  new BigDecimal("500.00"));
         MvcResult result = mockMvc
                 .perform(post("/api/account")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -150,7 +153,7 @@ class AccountControllerTest {
         AccountCreationRequest invalidRequest = new AccountCreationRequest(
                 null,
                 "Skawiński",
-                "PLN",
+                CURRENCY_CODE_PLN,
                 new BigDecimal("1000.00")
         );
         // When: Perform a POST request with the invalid request
@@ -173,7 +176,7 @@ class AccountControllerTest {
         AccountCreationRequest invalidRequest = new AccountCreationRequest(
                 "Jakub",
                 null,
-                "PLN",
+                CURRENCY_CODE_PLN,
                 new BigDecimal("1000.00")
         );
 

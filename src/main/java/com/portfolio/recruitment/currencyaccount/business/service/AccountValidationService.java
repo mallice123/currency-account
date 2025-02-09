@@ -32,11 +32,10 @@ public class AccountValidationService {
             throw new CurrencyNotSupported("Provided currency is not supported: " + targetCurrency);
         }
     }
-
     protected boolean validateCurrencyExists(AccountCurrencyUpdateRequest accountCurrencyUpdateRequest, Account account) {
+
          return (account.balances().stream().anyMatch(
                  balance -> balance.currencyCode().equals(accountCurrencyUpdateRequest.currencyCode())));
-
     }
 
 }

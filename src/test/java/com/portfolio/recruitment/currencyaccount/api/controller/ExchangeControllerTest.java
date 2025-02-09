@@ -9,6 +9,7 @@ import com.portfolio.recruitment.currencyaccount.api.dto.ErrorResponse;
 import com.portfolio.recruitment.currencyaccount.api.dto.ExchangeRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -29,6 +30,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
+import static com.portfolio.recruitment.currencyaccount.business.service.util.CurrencyConstants.CURRENCY_CODE_PLN;
+import static com.portfolio.recruitment.currencyaccount.business.service.util.CurrencyConstants.CURRENCY_CODE_USD;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -37,6 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
+@Tag("integrationTest")
 class ExchangeControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -83,7 +87,7 @@ class ExchangeControllerTest {
         AccountCreationRequest createAccountRequest = new AccountCreationRequest(
                 "Jakub",
                 "Skawiński",
-                "PLN",
+                CURRENCY_CODE_PLN,
                 new BigDecimal("1000.00")
         );
         MvcResult result = mockMvc
@@ -96,7 +100,7 @@ class ExchangeControllerTest {
         // Given: Add new currency type to balance
         AccountCurrencyUpdateRequest accountCurrencyUpdateRequest = new AccountCurrencyUpdateRequest(
                 id,
-                "USD",
+                CURRENCY_CODE_USD,
                 BigDecimal.ZERO
         );
         mockMvc.perform(patch("/api/account/currencies")
@@ -108,8 +112,8 @@ class ExchangeControllerTest {
         ExchangeRequest exchangeRequest = new ExchangeRequest(
                 id,
                 new BigDecimal("400.00"),
-                "PLN",
-                "USD"
+                CURRENCY_CODE_PLN,
+                CURRENCY_CODE_USD
         );
 
         // When: Perform a POST request to exchange currency
@@ -160,7 +164,7 @@ class ExchangeControllerTest {
         AccountCreationRequest createAccountRequest = new AccountCreationRequest(
                 "Koszałek",
                 "Opałek",
-                "PLN",
+                CURRENCY_CODE_PLN,
                 new BigDecimal("1000.00")
 
         );
@@ -175,7 +179,7 @@ class ExchangeControllerTest {
         // Given: Add new currency type to account
         AccountCurrencyUpdateRequest accountCurrencyUpdateRequest = new AccountCurrencyUpdateRequest(
                 id,
-                "USD",
+                CURRENCY_CODE_USD,
                 BigDecimal.valueOf(100.00)
         );
         mockMvc.perform(patch("/api/account/currencies")
@@ -187,8 +191,8 @@ class ExchangeControllerTest {
         ExchangeRequest exchangeRequest = new ExchangeRequest(
                 id,
                 new BigDecimal("100.00"),
-        "USD",
-        "PLN");
+                CURRENCY_CODE_USD,
+                CURRENCY_CODE_PLN);
         // When: Perform a POST request to exchange currency
         mockMvc
                 .perform(post("/api/exchange")
@@ -237,7 +241,7 @@ class ExchangeControllerTest {
         AccountCreationRequest createAccountRequest = new AccountCreationRequest(
                 "Koszałek",
                 "Opałek",
-                "PLN",
+                CURRENCY_CODE_PLN,
                 new BigDecimal("15.14")
         );
         MvcResult createAccountResult = mockMvc
@@ -251,13 +255,13 @@ class ExchangeControllerTest {
         ExchangeRequest exchangeRequest = new ExchangeRequest(
                 id,
                 new BigDecimal("100.00"),
-                "USD",
-                "PLN");
+                CURRENCY_CODE_USD,
+                CURRENCY_CODE_PLN);
 
         // Given: Add new currency type to account
         AccountCurrencyUpdateRequest accountCurrencyUpdateRequest = new AccountCurrencyUpdateRequest(
                 id,
-                "USD",
+                CURRENCY_CODE_USD,
                 BigDecimal.ZERO
         );
         mockMvc.perform(patch("/api/account/currencies")
@@ -268,7 +272,7 @@ class ExchangeControllerTest {
                 .perform(post("/api/exchange")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(exchangeRequest))).andReturn();
-                // Then: Expect status Bad Request and an error message with "Insufficient initialValue"
+                // Then: Expect status Bad Request and an ErrorResponse
         ErrorResponse errorResponse = getErrorResponse(exchangeResult);
         assert errorResponse.status() == 400;
         assert errorResponse.message().equals("ILLEGAL_ARGUMENT");
@@ -283,8 +287,8 @@ class ExchangeControllerTest {
         ExchangeRequest invalidRequest = new ExchangeRequest(
                 1L,
                 new BigDecimal("-500.00"),
-                "PLN",
-                "USD"
+                CURRENCY_CODE_PLN,
+                CURRENCY_CODE_USD
 
         );
         // When: Perform the exchange POST request
