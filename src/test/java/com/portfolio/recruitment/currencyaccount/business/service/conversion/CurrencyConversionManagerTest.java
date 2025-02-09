@@ -10,7 +10,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.testcontainers.shaded.org.bouncycastle.jcajce.provider.asymmetric.util.ECUtil;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
