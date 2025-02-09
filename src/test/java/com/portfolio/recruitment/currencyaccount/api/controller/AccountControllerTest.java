@@ -1,17 +1,36 @@
 package com.portfolio.recruitment.currencyaccount.api.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.jayway.jsonpath.JsonPath;
+import com.portfolio.recruitment.currencyaccount.api.dto.AccountCreationRequest;
+import com.portfolio.recruitment.currencyaccount.api.dto.ErrorResponse;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.math.BigDecimal;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
 class AccountControllerTest {
-/*
     @Autowired
     private MockMvc mockMvc;
 
@@ -53,6 +72,7 @@ class AccountControllerTest {
         AccountCreationRequest createAccountRequest = new AccountCreationRequest(
                 "Jakub",
                 "Skawiński",
+                "PLN",
                 new BigDecimal("1000.00")
         );
         // When: Perform a POST request to create an account
@@ -74,7 +94,7 @@ class AccountControllerTest {
     public void testGetAccountByObtainedId_Success() throws Exception {
         // Given: Create an account and obtain its ID
         AccountCreationRequest createAccountRequest = new AccountCreationRequest(
-                "Koszałek", "Opałek", new BigDecimal("500.00"));
+                "Koszałek", "Opałek","PLN",  new BigDecimal("500.00"));
         MvcResult result = mockMvc
                 .perform(post("/api/account")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -92,27 +112,36 @@ class AccountControllerTest {
                             "id": %d,
                             "firstName": "Koszałek",
                             "lastName": "Opałek",
-                            "balancePLN": 500.00,
-                            "balanceUSD": 0.00
+                            "currentBalance": [
+                                 {
+                                     "currencyCode": "PLN",
+                                     "value": 500.00
+                                 }]
                         }""", id)));
     }
 
     @Test
     public void testAccountCreation_MissingInitialBalance_ThrowsException() throws Exception {
-        // Given: Prepare an account creation request with a missing initial value
+        // Given: Prepare an account creation request with a missing initial initialValue
         AccountCreationRequest invalidRequest = new AccountCreationRequest(
                 "Jakub",
                 "Skawiński",
-                null
+                null,
+                new BigDecimal("1000.00")
         );
         // When: Perform a POST request with the invalid request
-        mockMvc
-                .perform(post("/api/account")
+        MvcResult result = mockMvc.perform(post("/api/account")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
-                // Then: Expect status Bad Request and proper error message
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Initial value cannot be null."));
+                .andReturn();
+
+                // Then: Expect status Bad Request and ErrorResponse
+        ErrorResponse errorResponse = getErrorResponse(result);
+        assert errorResponse.status() == 400;
+        assert errorResponse.errorCode().equals("Currency code cannot be null.");
+        assert errorResponse.message().equals("VALIDATION_ERROR");
+        assert errorResponse.details().size() == 1;
+        assert errorResponse.details().getFirst().equals("Validation of failed");
     }
 
     @Test
@@ -121,16 +150,21 @@ class AccountControllerTest {
         AccountCreationRequest invalidRequest = new AccountCreationRequest(
                 null,
                 "Skawiński",
+                "PLN",
                 new BigDecimal("1000.00")
         );
         // When: Perform a POST request with the invalid request
-        mockMvc
-                .perform(post("/api/account")
+        MvcResult result = mockMvc.perform(post("/api/account")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                        .content(objectMapper.writeValueAsString(invalidRequest))).andReturn();
+
                 // Then: Expect status Bad Request and proper error message
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("First name cannot be null."));
+        ErrorResponse errorResponse = getErrorResponse(result);
+        assert errorResponse.status() == 400;
+        assert errorResponse.errorCode().equals("First name cannot be null.");
+        assert errorResponse.message().equals("VALIDATION_ERROR");
+        assert errorResponse.details().size() == 1;
+        assert errorResponse.details().getFirst().equals("Validation of failed");
     }
 
     @Test
@@ -139,17 +173,25 @@ class AccountControllerTest {
         AccountCreationRequest invalidRequest = new AccountCreationRequest(
                 "Jakub",
                 null,
+                "PLN",
                 new BigDecimal("1000.00")
         );
-        // When: Perform a POST request with the invalid request
-        mockMvc
-                .perform(post("/api/account")
+
+        MvcResult result = mockMvc.perform(post("/api/account")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
-                // Then: Expect status Bad Request and proper error message
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Last name cannot be null."));
+                        .content(objectMapper.writeValueAsString(invalidRequest))).andReturn();
+
+        // Then: Expect status Bad Request and proper error response object
+        ErrorResponse errorResponse = getErrorResponse(result);
+        assert errorResponse.status() == 400;
+        assert errorResponse.errorCode().equals("Last name cannot be null.");
+        assert errorResponse.message().equals("VALIDATION_ERROR");
+        assert errorResponse.details().size() == 1;
+        assert errorResponse.details().getFirst().equals("Validation of failed");
     }
-*/
+
+    private ErrorResponse getErrorResponse(MvcResult result) throws Exception {
+        return objectMapper.readValue(result.getResponse().getContentAsString(), ErrorResponse.class);
+    }
 
 }

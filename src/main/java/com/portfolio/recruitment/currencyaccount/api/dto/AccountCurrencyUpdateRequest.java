@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 
-public record AccountCurrencyUpdate(
+public record AccountCurrencyUpdateRequest(
 
     @NotNull(message = "ID must not be null.")
     Long id,
@@ -15,7 +15,7 @@ public record AccountCurrencyUpdate(
 
     @NotNull(message = "Value cannot be null.")
     @DecimalMin(value = "0.00", message = "Value cannot be negative.")
-    BigDecimal value
+    BigDecimal initialValue
 )
 {
 }

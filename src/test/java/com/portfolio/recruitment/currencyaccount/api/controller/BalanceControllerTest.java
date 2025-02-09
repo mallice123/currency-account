@@ -6,7 +6,6 @@ import com.jayway.jsonpath.JsonPath;
 import com.portfolio.recruitment.currencyaccount.api.dto.AccountCreationRequest;
 import com.portfolio.recruitment.currencyaccount.api.dto.AccountCurrencyUpdateRequest;
 import com.portfolio.recruitment.currencyaccount.api.dto.ErrorResponse;
-import com.portfolio.recruitment.currencyaccount.api.dto.ExchangeRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,7 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
-class ExchangeControllerTest {
+class BalanceControllerTest {
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -78,7 +78,7 @@ class ExchangeControllerTest {
     }
 
     @Test
-    void testPLNToUSDConversion() throws Exception {
+    public void addingNewCurrencyTypes() throws Exception {
         // Given: Create an account with initial initialValue and obtain its ID
         AccountCreationRequest createAccountRequest = new AccountCreationRequest(
                 "Jakub",
@@ -93,10 +93,10 @@ class ExchangeControllerTest {
                 .andExpect(status().isOk()).andReturn();
         long id = ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
 
-        // Given: Add new currency type to balance
+        // Given: Add new currency to balance type
         AccountCurrencyUpdateRequest accountCurrencyUpdateRequest = new AccountCurrencyUpdateRequest(
                 id,
-                "USD",
+                "EUR",
                 BigDecimal.ZERO
         );
         mockMvc.perform(patch("/api/account/currencies")
@@ -104,35 +104,6 @@ class ExchangeControllerTest {
                         .content(objectMapper.writeValueAsString(accountCurrencyUpdateRequest)))
                 .andExpect(status().isNoContent()).andReturn();
 
-        // Given: Prepare an exchange request to convert PLN to USD
-        ExchangeRequest exchangeRequest = new ExchangeRequest(
-                id,
-                new BigDecimal("400.00"),
-                "PLN",
-                "USD"
-        );
-
-        // When: Perform a POST request to exchange currency
-        mockMvc
-                .perform(post("/api/exchange")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(exchangeRequest)))
-                // Then: Expect status OK with updated balances in the response
-                .andExpect(status().isOk())
-                .andExpect(content().json("""
-                             {
-                                 "currentBalance": [
-                                     {
-                                         "currencyCode": "PLN",
-                                         "value": 600
-                                     },
-                                     {
-                                         "currencyCode": "USD",
-                                         "value": 95.34
-                                     }
-                                 ]
-                             }
-                        """));
         // When: Perform a GET request to retrieve the updated account
         mockMvc.perform(MockMvcRequestBuilders.get("/api/account/" + id))
                 // Then: Expect the updated account details with new balances
@@ -145,71 +116,87 @@ class ExchangeControllerTest {
                             "currentBalance": [
                                  {
                                      "currencyCode": "PLN",
-                                     "value": 600.00
+                                     "value": 1000.00
                                  },
                                  {
-                                 "currencyCode": "USD",
-                                 "value": 95.34
+                                 "currencyCode": "EUR",
+                                 "value": 0.00
                                  }]
                         }""", id)));
     }
 
     @Test
-    void testUSDtoPLNConversion() throws Exception {
+    public void addingNotSupportedCurrency() throws Exception {
         // Given: Create an account with initial initialValue and obtain its ID
         AccountCreationRequest createAccountRequest = new AccountCreationRequest(
-                "Koszałek",
-                "Opałek",
+                "Jakub",
+                "Skawiński",
                 "PLN",
                 new BigDecimal("1000.00")
+        );
+        MvcResult accountCreationResult = mockMvc
+                .perform(post("/api/account")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createAccountRequest)))
+                .andExpect(status().isOk()).andReturn();
+        long id = ((Number) JsonPath.read(accountCreationResult.getResponse().getContentAsString(), "$.id")).longValue();
 
+        // Given: Add new currency to balance type
+        AccountCurrencyUpdateRequest accountCurrencyUpdateRequest = new AccountCurrencyUpdateRequest(
+                id,
+                "KSH",
+                BigDecimal.ZERO
+        );
+        MvcResult updateNewCurrencyResult = mockMvc.perform(patch("/api/account/currencies")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(accountCurrencyUpdateRequest)))
+                .andReturn();
+
+        ErrorResponse errorResponse = getErrorResponse(updateNewCurrencyResult);
+        assert errorResponse.status() == 400;
+        assert errorResponse.errorCode().equals("Provided currency is not supported: KSH");
+        assert errorResponse.message().equals("CURRENCY_NOT_SUPPORTED");
+        assert !errorResponse.details().isEmpty();
+    }
+
+
+    @Test
+    public void addingMultipleSupportedCurrencies() throws Exception {
+        // Given: Create an account with initial initialValue and obtain its ID
+        AccountCreationRequest createAccountRequest = new AccountCreationRequest(
+                "Jakub",
+                "Skawiński",
+                "PLN",
+                new BigDecimal("1000.00")
         );
         MvcResult result = mockMvc
                 .perform(post("/api/account")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createAccountRequest)))
                 .andExpect(status().isOk()).andReturn();
-
         long id = ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
 
         // Given: Add new currency type to account
         AccountCurrencyUpdateRequest accountCurrencyUpdateRequest = new AccountCurrencyUpdateRequest(
                 id,
-                "USD",
-                BigDecimal.valueOf(100.00)
+                "EUR",
+                BigDecimal.ZERO
         );
         mockMvc.perform(patch("/api/account/currencies")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(accountCurrencyUpdateRequest)))
                 .andExpect(status().isNoContent()).andReturn();
 
-        // Given: Then, prepare a request to convert USD back to PLN
-        ExchangeRequest exchangeRequest = new ExchangeRequest(
+        // Given: Add second currency type to account
+        AccountCurrencyUpdateRequest secondAccountCurrencyUpdateRequest = new AccountCurrencyUpdateRequest(
                 id,
-                new BigDecimal("100.00"),
-        "USD",
-        "PLN");
-        // When: Perform a POST request to exchange currency
-        mockMvc
-                .perform(post("/api/exchange")
+                "USD",
+                BigDecimal.valueOf(250.35)
+        );
+        mockMvc.perform(patch("/api/account/currencies")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(exchangeRequest)))
-                // Then: Expect status OK with updated balances in the response
-                .andExpect(status().isOk())
-                .andExpect(content().json("""
-                             {
-                                 "currentBalance": [
-                                     {
-                                         "currencyCode": "PLN",
-                                         "value": 1411.24
-                                     },
-                                     {
-                                         "currencyCode": "USD",
-                                         "value": 0.00
-                                     }
-                                 ]
-                             }
-                        """));
+                        .content(objectMapper.writeValueAsString(secondAccountCurrencyUpdateRequest)))
+                .andExpect(status().isNoContent()).andReturn();
         // When: Perform a GET request to retrieve the updated account
         mockMvc.perform(MockMvcRequestBuilders.get("/api/account/" + id))
                 // Then: Expect the updated account details with new balances
@@ -217,83 +204,22 @@ class ExchangeControllerTest {
                 .andExpect(content().json(String.format("""
                         {
                             "id": %d,
-                            "firstName": "Koszałek",
-                            "lastName": "Opałek",
+                            "firstName": "Jakub",
+                            "lastName": "Skawiński",
                             "currentBalance": [
                                  {
                                      "currencyCode": "PLN",
-                                     "value": 1411.24
+                                     "value": 1000.00
+                                 },
+                                 {
+                                 "currencyCode": "EUR",
+                                 "value": 0.00
                                  },
                                  {
                                  "currencyCode": "USD",
-                                 "value": 0.00
+                                 "value": 250.35
                                  }]
                         }""", id)));
-    }
-
-    @Test
-    void testInsuffisientAmount() throws Exception {
-        // Given: Create an account with insufficient initialValue
-        AccountCreationRequest createAccountRequest = new AccountCreationRequest(
-                "Koszałek",
-                "Opałek",
-                "PLN",
-                new BigDecimal("15.14")
-        );
-        MvcResult createAccountResult = mockMvc
-                .perform(post("/api/account")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createAccountRequest)))
-                .andExpect(status().isOk()).andReturn();
-        long id = ((Number) JsonPath.read(createAccountResult.getResponse().getContentAsString(), "$.id")).longValue();
-
-        // Given: Prepare an exchange request with an amount exceeding the initialValue
-        ExchangeRequest exchangeRequest = new ExchangeRequest(
-                id,
-                new BigDecimal("100.00"),
-                "USD",
-                "PLN");
-
-        // Given: Add new currency type to account
-        AccountCurrencyUpdateRequest accountCurrencyUpdateRequest = new AccountCurrencyUpdateRequest(
-                id,
-                "USD",
-                BigDecimal.ZERO
-        );
-        mockMvc.perform(patch("/api/account/currencies")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(accountCurrencyUpdateRequest))).andReturn();
-        // When: Perform the exchange POST request
-        MvcResult exchangeResult = mockMvc
-                .perform(post("/api/exchange")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(exchangeRequest))).andReturn();
-                // Then: Expect status Bad Request and an error message with "Insufficient initialValue"
-        ErrorResponse errorResponse = getErrorResponse(exchangeResult);
-        assert errorResponse.status() == 400;
-        assert errorResponse.message().equals("ILLEGAL_ARGUMENT");
-        assert errorResponse.errorCode().equals("Insufficient initialValue in USD.");
-        assert !errorResponse.details().isEmpty();
-    }
-
-
-    @Test
-    void testInvalidAmount() throws Exception {
-        // Given: Prepare an exchange request with an invalid, negative amount
-        ExchangeRequest invalidRequest = new ExchangeRequest(
-                1L,
-                new BigDecimal("-500.00"),
-                "PLN",
-                "USD"
-
-        );
-        // When: Perform the exchange POST request
-        mockMvc
-                .perform(post("/api/exchange")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
-                // Then: Expect status Bad Request
-                .andExpect(status().isBadRequest());
     }
 
     private void mockExchangeRatesResponse() {
@@ -323,4 +249,5 @@ class ExchangeControllerTest {
     private ErrorResponse getErrorResponse(MvcResult result) throws Exception {
         return objectMapper.readValue(result.getResponse().getContentAsString(), ErrorResponse.class);
     }
+
 }

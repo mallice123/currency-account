@@ -1,6 +1,6 @@
 package com.portfolio.recruitment.currencyaccount.business.service;
 
-import com.portfolio.recruitment.currencyaccount.api.dto.AccountCurrencyUpdate;
+import com.portfolio.recruitment.currencyaccount.api.dto.AccountCurrencyUpdateRequest;
 import com.portfolio.recruitment.currencyaccount.business.service.model.AccountBalance;
 import com.portfolio.recruitment.currencyaccount.business.service.mapper.AccountMapper;
 import com.portfolio.recruitment.currencyaccount.business.service.model.Account;
@@ -44,20 +44,20 @@ public class AccountBalanceService {
     }
 
     @Transactional
-    public void addNewBalanceType(AccountCurrencyUpdate accountCurrencyUpdate) {
-        Account account = accountRepository.findByIdForUpdate(accountCurrencyUpdate.id())
+    public void addNewBalanceType(AccountCurrencyUpdateRequest accountCurrencyUpdateRequest) {
+        Account account = accountRepository.findByIdForUpdate(accountCurrencyUpdateRequest.id())
                 .map(accountMapper::toAccount)
-                .orElseThrow(() -> new AccountNotFound("Account with ID " + accountCurrencyUpdate.id() + " not found."));
+                .orElseThrow(() -> new AccountNotFound("Account with ID " + accountCurrencyUpdateRequest.id() + " not found."));
 
-        accountValidationService.validateAvailableCurrency(accountCurrencyUpdate.currencyCode());
+        accountValidationService.validateAvailableCurrency(accountCurrencyUpdateRequest.currencyCode());
 
-        if(accountValidationService.validateCurrencyExists(accountCurrencyUpdate, account)) {
+        if(accountValidationService.validateCurrencyExists(accountCurrencyUpdateRequest, account)) {
             return;
         }
 
         List<AccountBalance> updatedBalances = new ArrayList<>(account.balances());
-        updatedBalances.add(new AccountBalance(accountCurrencyUpdate.currencyCode(),
-                accountCurrencyUpdate.value().setScale(2, RoundingMode.HALF_UP)));
+        updatedBalances.add(new AccountBalance(accountCurrencyUpdateRequest.currencyCode(),
+                accountCurrencyUpdateRequest.initialValue().setScale(2, RoundingMode.HALF_UP)));
 
         Account updatedAccount = new Account(
                 account.id(),

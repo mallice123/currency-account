@@ -35,7 +35,7 @@ class CurrencyConversionServiceTest {
         // When: Call the conversion method to convert 450 PLN to USD
      //   BigDecimal result = service.performExchange("PLN", "USD", new BigDecimal("450"));
 
-        // Then: Verify that the result matches the expected converted value
+        // Then: Verify that the result matches the expected converted initialValue
      //   assertEquals(new BigDecimal("100.00"), result);
     }
 
@@ -47,7 +47,7 @@ class CurrencyConversionServiceTest {
         // When: Call the conversion method to convert 100 USD to PLN
      //   BigDecimal result = service.performExchange("USD", "PLN", new BigDecimal("100"));
 
-        // Then: Verify that the result matches the expected converted value
+        // Then: Verify that the result matches the expected converted initialValue
       //  assertEquals(new BigDecimal("450.00"), result);
     }
 

@@ -18,8 +18,8 @@ public record AccountCreationRequest(
         @NotNull(message = "Currency code cannot be null.")
         String currencyCode,
 
-        @NotNull(message = "Initial value cannot be null.")
-        @DecimalMin(value = "0.00", message = "Initial value can't be a negative value.")
+        @NotNull(message = "Initial initialValue cannot be null.")
+        @DecimalMin(value = "0.00", message = "Initial initialValue can't be a negative initialValue.")
         BigDecimal initialBalance
 )
 {

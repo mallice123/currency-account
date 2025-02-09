@@ -1,0 +1,9 @@
+{
+  "status": 400,
+  "message": "VALIDATION_ERROR",
+  "errorCode": "First name cannot be null.",
+  "timestamp": "2025-02-08T16:50:59.849822",
+  "details": [
+    "Validation of failed"
+
+}

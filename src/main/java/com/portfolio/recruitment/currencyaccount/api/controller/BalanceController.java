@@ -1,6 +1,6 @@
 package com.portfolio.recruitment.currencyaccount.api.controller;
 
-import com.portfolio.recruitment.currencyaccount.api.dto.AccountCurrencyUpdate;
+import com.portfolio.recruitment.currencyaccount.api.dto.AccountCurrencyUpdateRequest;
 import com.portfolio.recruitment.currencyaccount.business.service.AccountBalanceService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +21,8 @@ public class BalanceController {
 
     @PatchMapping()
     public ResponseEntity<Void> addNewBalanceType(
-            @RequestBody @Valid AccountCurrencyUpdate accountCurrencyUpdate) {
-        accountBalanceService.addNewBalanceType(accountCurrencyUpdate);
+            @RequestBody @Valid AccountCurrencyUpdateRequest accountCurrencyUpdateRequest) {
+        accountBalanceService.addNewBalanceType(accountCurrencyUpdateRequest);
         return ResponseEntity.noContent().build();
     }
 
